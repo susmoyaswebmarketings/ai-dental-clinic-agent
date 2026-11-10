@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinic Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#F2F5F4; --surface:#FFFFFF; --sunk:#E8EEEC; --ink:#14201D; --muted:#5A6A65; --line:#D3DDD9;
+  --accent:#0E7A6B; --accent-ink:#FFFFFF; --accent-soft:#DCEFEA; --urgent:#B32143; --urgent-soft:#FBE3E8;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif; --body:"Figtree","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1412; --surface:#161F1C; --sunk:#1D2824; --ink:#E4EDEA; --muted:#93A49F; --line:#2A3833;
+  --accent:#3CC0A8; --accent-ink:#04211B; --accent-soft:#143A32; --urgent:#F27C95; --urgent-soft:#3B1922; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1412; --surface:#161F1C; --sunk:#1D2824; --ink:#E4EDEA; --muted:#93A49F; --line:#2A3833;
+  --accent:#3CC0A8; --accent-ink:#04211B; --accent-soft:#143A32; --urgent:#F27C95; --urgent-soft:#3B1922; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg)}
+body{color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;display:grid;place-items:center;min-height:100vh;padding:24px 16px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px 24px}
+.logo{width:44px;height:44px;border-radius:12px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--display);font-weight:700;margin-bottom:14px}
+h1{font-family:var(--display);font-size:24px;line-height:1.15;margin:0 0 4px}
+p.sub{margin:0 0 20px;color:var(--muted)}
+label{display:block;font-weight:600;font-size:13px;margin:12px 0 4px}
+input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px}
+button{width:100%;margin-top:18px;border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:11px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+.err{margin-top:12px;background:var(--urgent-soft);color:var(--urgent);border-radius:8px;padding:8px 10px;font-size:13.5px}
+.hint{margin-top:16px;font-size:12.5px;color:var(--muted);text-align:center}
+.hint a{color:var(--muted)}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="logo" aria-hidden="true">SD</div>
+  <h1>Clinic owner login</h1>
+  <p class="sub">Sign in to see appointments, patient enquiries and staff alerts.</p>
+  <form id="f" novalidate>
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" required>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" required>
+    <button id="go" type="submit">Log in</button>
+    <div class="err" id="err" role="alert" hidden></div>
+  </form>
+  <p class="hint">Your login is in the <b>.env</b> file (OWNER_EMAIL / OWNER_PASSWORD). · <a href="/">Patient chat</a></p>
+</main>
+<script>
+document.getElementById("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const err = document.getElementById("err"), go = document.getElementById("go");
+  err.hidden = true; go.disabled = true; go.textContent = "Logging in…";
+  try {
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: document.getElementById("email").value, password: document.getElementById("pw").value }) });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) { location.href = "/dashboard"; return; }
+    err.textContent = d.error || "Login failed."; err.hidden = false;
+  } catch (x) { err.textContent = "Can't reach the server. Is it running?"; err.hidden = false; }
+  go.disabled = false; go.textContent = "Log in";
+});
+</script>
+</body>
+</html>

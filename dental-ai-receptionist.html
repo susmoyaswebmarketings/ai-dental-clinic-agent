@@ -1,0 +1,819 @@
+<title>Smile Dental AI Receptionist</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Noto+Sans+Bengali:wght@400;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap">
+<style>
+/* Layout: phone-style patient chat on the left, clinic front-desk console on the right; stacks on phones. */
+:root{
+  --bg:#F2F5F4; --surface:#FFFFFF; --sunk:#E8EEEC; --ink:#14201D; --muted:#5A6A65; --line:#D3DDD9;
+  --accent:#0E7A6B; --accent-ink:#FFFFFF; --accent-soft:#DCEFEA;
+  --urgent:#B32143; --urgent-soft:#FBE3E8; --warn:#9A5A00; --warn-soft:#FAEED7;
+  --chatbg:#E5EBE9; --bubble-in:#FFFFFF; --bubble-out:#D3EEE6; --event:#EEF3F1;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Figtree", "Noto Sans Bengali", "Noto Sans Devanagari", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1412; --surface:#161F1C; --sunk:#1D2824; --ink:#E4EDEA; --muted:#93A49F; --line:#2A3833;
+  --accent:#3CC0A8; --accent-ink:#04211B; --accent-soft:#143A32;
+  --urgent:#F27C95; --urgent-soft:#3B1922; --warn:#E9B264; --warn-soft:#3A2B13;
+  --chatbg:#111916; --bubble-in:#1C2723; --bubble-out:#164036; --event:#1A2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1412; --surface:#161F1C; --sunk:#1D2824; --ink:#E4EDEA; --muted:#93A49F; --line:#2A3833;
+  --accent:#3CC0A8; --accent-ink:#04211B; --accent-soft:#143A32;
+  --urgent:#F27C95; --urgent-soft:#3B1922; --warn:#E9B264; --warn-soft:#3A2B13;
+  --chatbg:#111916; --bubble-in:#1C2723; --bubble-out:#164036; --event:#1A2420; color-scheme:dark}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 32px}
+*{box-sizing:border-box}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--display);font-size:clamp(22px,3vw,30px);line-height:1.1;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.brand p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--sunk);color:var(--muted)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.urgent{background:var(--urgent-soft);color:var(--urgent)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:920px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Phone */
+.phone{background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;height:min(720px,82vh);min-height:520px}
+.phone-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--accent);color:var(--accent-ink)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-ink);color:var(--accent);display:grid;place-items:center;font-family:var(--display);font-weight:700;flex:none}
+.phone-head .who{min-width:0}
+.phone-head strong{display:block;font-size:15px}
+.phone-head small{opacity:.85;font-size:12px}
+.msgs{flex:1;overflow-y:auto;background:var(--chatbg);padding:14px 12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:84%;padding:8px 11px 6px;border-radius:12px;box-shadow:0 1px 0 rgba(0,0,0,.06);word-wrap:break-word;overflow-wrap:anywhere}
+.msg.ai{background:var(--bubble-in);align-self:flex-start;border-top-left-radius:4px}
+.msg.patient{background:var(--bubble-out);align-self:flex-end;border-top-right-radius:4px}
+.msg .meta{display:block;text-align:right;font-size:10.5px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
+.event{align-self:center;background:var(--event);border:1px dashed var(--line);color:var(--muted);font-size:12px;padding:4px 10px;border-radius:8px;text-align:center;max-width:92%}
+.event.booked{color:var(--accent);border-color:var(--accent)}
+.event.urgent{color:var(--urgent);border-color:var(--urgent);background:var(--urgent-soft)}
+.typing{align-self:flex-start;background:var(--bubble-in);padding:10px 14px;border-radius:12px;display:flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.3}30%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.typing i{animation:none}}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:var(--surface);border-top:1px solid var(--line);scrollbar-width:thin}
+.chip{flex:none;border:1px solid var(--line);background:var(--sunk);border-radius:999px;padding:5px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:var(--accent)}
+.composer{display:flex;gap:8px;padding:10px;background:var(--surface);border-top:1px solid var(--line)}
+.composer input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:9px 14px}
+.composer button{border:0;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:0 16px;font-weight:700;cursor:pointer}
+.composer button:disabled{opacity:.5;cursor:default}
+
+/* Console */
+.console{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font-family:var(--display);font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kpi.alert b{color:var(--urgent)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-width:0}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 8px;overflow-x:auto}
+.tab{border:0;background:none;padding:11px 12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab .count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--urgent);color:var(--surface);font-size:11px;text-align:center}
+.pane{padding:14px}
+.days{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px}
+.day{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 10px;cursor:pointer;text-align:center;font-size:12px}
+.day b{display:block;font-size:14px}
+.day[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.day.closed{opacity:.55}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+td.time{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;width:80px}
+.slot{border-radius:7px;padding:4px 8px;font-size:12.5px}
+.slot.free{color:var(--muted);border:1px dashed var(--line)}
+.slot.taken{background:var(--sunk)}
+.slot.ai{background:var(--accent-soft);color:var(--ink);box-shadow:inset 3px 0 0 var(--accent)}
+.slot.past{opacity:.45}
+.slot small{color:var(--muted)}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:5px;background:var(--accent);color:var(--accent-ink);margin-left:4px;vertical-align:1px}
+.closedmsg{padding:28px;text-align:center;color:var(--muted)}
+.alerts{display:flex;flex-direction:column;gap:10px}
+.alert{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.alert.urgent{border-color:var(--urgent);background:var(--urgent-soft)}
+.alert .body{flex:1;min-width:0}
+.alert .body p{margin:2px 0 0;color:var(--muted)}
+.alert.done{opacity:.55}
+.empty{color:var(--muted);padding:18px;text-align:center}
+.status{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);white-space:nowrap}
+.status.Booked{background:var(--accent-soft);color:var(--accent)}
+.status.Escalated{background:var(--urgent-soft);color:var(--urgent)}
+.status.Cancelled{background:var(--warn-soft);color:var(--warn)}
+.settings{display:grid;gap:12px}
+.settings label{font-weight:600;font-size:13px;display:block;margin-bottom:4px}
+.settings input,.settings textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px}
+.settings textarea{min-height:240px;font-size:13px;line-height:1.45;resize:vertical}
+.hint{color:var(--muted);font-size:12.5px;margin:0}
+.guards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.guards li{background:var(--sunk);border-radius:8px;padding:8px 10px;font-size:13px}
+.guards b{display:block}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+.msg strong{font-weight:700}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Smile Dental AI Receptionist</h1>
+      <p>A working demo of a clinic's 24/7 WhatsApp assistant. Chat as a patient on the left and watch the front-desk console update on the right. All patients and appointments are fictional.</p>
+    </div>
+    <div class="top-actions">
+      <span id="modePill" class="pill"><span class="dot"></span>Connecting AI…</span>
+      <span id="openPill" class="pill"><span class="dot"></span></span>
+      <button class="btn" id="newChat" type="button">New patient chat</button>
+      <button class="btn" id="resetAll" type="button">Reset demo</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="phone" aria-label="Patient chat">
+      <div class="phone-head">
+        <div class="avatar" aria-hidden="true">SD</div>
+        <div class="who"><strong id="clinicTitle">Smile Dental Clinic</strong><small id="phoneSub">AI assistant · replies instantly</small></div>
+      </div>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="chips" id="chips" aria-label="Example messages"></div>
+      <form class="composer" id="composer">
+        <input id="msgInput" autocomplete="off" placeholder="Type as a patient (English, বাংলা, हिन्दी)…" aria-label="Patient message">
+        <button id="sendBtn" type="submit">Send</button>
+      </form>
+    </section>
+
+    <section class="console" aria-label="Clinic console">
+      <div class="kpis" id="kpis"></div>
+      <div class="panel">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" data-tab="schedule" aria-selected="true">Appointments</button>
+          <button class="tab" role="tab" data-tab="alerts" aria-selected="false">Staff alerts<span class="count" id="alertCount" hidden></span></button>
+          <button class="tab" role="tab" data-tab="leads" aria-selected="false">Enquiries</button>
+          <button class="tab" role="tab" data-tab="calls" aria-selected="false">Reminder calls</button>
+          <button class="tab" role="tab" data-tab="settings" aria-selected="false">Clinic setup</button>
+        </div>
+        <div class="pane" id="pane-schedule"></div>
+        <div class="pane" id="pane-alerts" hidden></div>
+        <div class="pane" id="pane-leads" hidden></div>
+        <div class="pane" id="pane-calls" hidden></div>
+        <div class="pane" id="pane-settings" hidden>
+          <div class="settings">
+            <div>
+              <label for="clinicName">Clinic name</label>
+              <input id="clinicName">
+            </div>
+            <div>
+              <label for="kbText">Approved clinic information</label>
+              <p class="hint">The AI may only state facts written here. Edit it to match a real clinic before a sales demo.</p>
+              <textarea id="kbText"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn primary" id="saveKb" type="button">Save clinic information</button>
+              <button class="btn" id="restoreKb" type="button">Restore sample text</button>
+              <span id="kbSaved" class="note" aria-live="polite"></span>
+            </div>
+            <div>
+              <label>Safeguards built into this agent</label>
+              <ul class="guards">
+                <li><b>Discloses it is an AI</b>Every new chat opens by saying so, with a route to a human.</li>
+                <li><b>No clinical advice</b>No diagnosis, prescriptions, X-ray reading or treatment choices.</li>
+                <li><b>Emergency detection</b>A keyword check runs on every message, separately from the AI, and alerts staff.</li>
+                <li><b>Real calendar only</b>The page checks every booking against free slots before saving it.</li>
+                <li><b>Approved prices only</b>Quotes only the prices listed above. Everything else waits for an examination.</li>
+                <li><b>Minimum data</b>Collects only name, phone number, WhatsApp number, service and slot. The demo uses fictional data.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="note" id="footNote">Booking rule: the AI suggests a slot, and the page saves it only if that slot is still free in the clinic calendar. In a live system this calendar would be the clinic's own scheduling software or Google Calendar.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const DENTISTS = {
+  D1: { name: "Dr. Ananya Sen", short: "Dr. Sen", focus: "General & cosmetic dentistry, cleaning, fillings, whitening" },
+  D2: { name: "Dr. Rahul Ghosh", short: "Dr. Ghosh", focus: "Orthodontics (braces/aligners), implants, root canal" }
+};
+const TIMES = ["10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30"];
+// TEMPORARY TEST SLOT: an extra 3:00 PM slot, free for both dentists, on the day the page is opened.
+// Used to test reminder calls. Set TEST_SLOT_TIME = null to remove it.
+const TEST_SLOT_TIME = "18:00";
+const TEST_SLOT_DAY = (d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"))(new Date());
+const timesFor = date => TEST_SLOT_TIME && date === TEST_SLOT_DAY ? [...new Set([...TIMES, TEST_SLOT_TIME])].sort() : TIMES;
+const isTestSlot = (date, time) => TEST_SLOT_TIME && date === TEST_SLOT_DAY && time === TEST_SLOT_TIME;
+const DEFAULT_CLINIC = "Smile Dental Clinic";
+const DEFAULT_KB = `ADDRESS: 12 Lake Road, Ballygunge, Kolkata 700019 (near Lake Mall). Google Maps: search "Smile Dental Clinic Ballygunge".
+PHONE (front desk): +91 33 4000 1234
+HOURS: Monday–Saturday, 10:00 AM–2:00 PM and 5:00 PM–9:00 PM. Closed Sunday.
+DENTISTS: Dr. Ananya Sen (BDS, MDS) – general & cosmetic dentistry. Dr. Rahul Ghosh (BDS, MDS Orthodontics) – braces, aligners, implants, root canal.
+SERVICES: Check-up & consultation, scaling & cleaning, fillings, root canal treatment (RCT), crowns & bridges, braces & clear aligners, dental implants, teeth whitening, extractions, kids' dentistry.
+APPROVED PRICES (may be quoted):
+- Consultation: ₹300
+- Scaling & cleaning: from ₹800
+- Teeth whitening: from ₹6,000
+All other treatments (RCT, implants, braces, crowns): cost is given only after the dentist examines the patient. Do not estimate.
+PAYMENT: Cash, UPI, all major cards. EMI available for braces and implants (details at the clinic).
+FIRST VISIT: Arrive 10 minutes early. Bring previous dental records or X-rays if you have them.
+PARKING: Street parking on Lake Road; paid parking at Lake Mall.
+CANCELLATION: Please cancel or reschedule at least 2 hours before the appointment.`;
+const SERVICES = ["Check-up","Scaling & cleaning","Filling","Root canal","Braces review","Implant consult","Whitening","Extraction","Kids check-up","Crown fitting"];
+const NAMES = ["Sourav Das","Priya Banerjee","Arijit Roy","Moumita Saha","Debjani Paul","Rohan Mukherjee","Sneha Chatterjee","Amit Kundu","Tanushree Bose","Imran Ahmed","Kavita Sharma","Subhajit Mondal","Rina Dey","Anirban Pal","Pooja Agarwal","Nilanjana Sarkar","Vikram Singh","Sayantani Dutta"];
+const RED_FLAGS = [
+  [/swell|swollen|ফোলা|ফুলে|सूज|सूजन/i, "facial swelling"],
+  [/can'?t breathe|difficulty breathing|breathing|শ্বাস|सांस/i, "breathing difficulty"],
+  [/swallow|গিলতে|निगल/i, "difficulty swallowing"],
+  [/bleeding|won'?t stop|রক্ত|खून/i, "bleeding"],
+  [/accident|fell|fall|injur|broken|knocked out|ভেঙে|দুর্ঘটনা|टूट|चोट/i, "dental trauma"],
+  [/fever|জ্বর|बुखार/i, "fever"],
+  [/unbearable|severe pain|extreme pain|খুব ব্যথা|প্রচণ্ড|बहुत दर्द|तेज दर्द/i, "severe pain"]
+];
+const CHIPS = [
+  "I want a dental cleaning tomorrow evening",
+  "কাল সকালে অ্যাপয়েন্টমেন্ট পাওয়া যাবে?",
+  "Implant er khoroch koto?",
+  "मेरे दांत में बहुत दर्द है, आज दिखा सकते हैं?",
+  "My face is swollen and I have a fever",
+  "Where are you located? Is there parking?",
+  "Please cancel my appointment",
+  "Can I talk to a person?"
+];
+
+// ---------- utils ----------
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2, "0");
+const isoOf = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const parseIso = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const dayLabel = s => parseIso(s).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+const longDay = s => parseIso(s).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+const t12 = t => { let [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + pad(m) + " " + ap; };
+const nowClock = () => { const d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = s => esc(s).replace(/\*([^*\n]+)\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>");
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function days() {
+  const out = [], now = new Date();
+  for (let i = 0; i < 7; i++) { const d = addDays(now, i); out.push({ iso: isoOf(d), closed: d.getDay() === 0, offset: i }); }
+  return out;
+}
+function isOpenNow() {
+  const d = new Date(); if (d.getDay() === 0) return false;
+  const m = d.getHours() * 60 + d.getMinutes();
+  return (m >= 600 && m < 840) || (m >= 1020 && m < 1260);
+}
+function isPast(date, time) {
+  const [h, mi] = time.split(":").map(Number); const d = parseIso(date); d.setHours(h, mi, 0, 0);
+  return d.getTime() < Date.now() + 30 * 60000;
+}
+const booked = (date, time, den) => S.appts.find(a => a.status === "booked" && a.date === date && a.time === time && a.dentist === den);
+function isFree(date, time, den) {
+  const day = days().find(x => x.iso === date);
+  if (!day || day.closed || !timesFor(date).includes(time) || !DENTISTS[den]) return false;
+  return !isPast(date, time) && !booked(date, time, den);
+}
+function freeList(date, den) { return timesFor(date).filter(t => (!den ? Object.keys(DENTISTS).some(d => isFree(date, t, d)) : isFree(date, t, den))); }
+
+// ---------- state ----------
+let S, sampleFn = null, mode = "connecting", busy = false, activeTab = "schedule", viewDay = null;
+let localServer = false, calls = null; const seenCallOutcome = new Set();
+function seedAppts() {
+  const r = rng(Number(isoOf(new Date()).replace(/-/g, ""))), out = [];
+  let n = 0;
+  for (const day of days()) {
+    if (day.closed) continue;
+    for (const t of TIMES) for (const den of Object.keys(DENTISTS)) {
+      if (r() < (day.offset === 0 ? 0.55 : day.offset === 1 ? 0.5 : 0.35) && !isTestSlot(day.iso, t)) { // test slot stays free
+        out.push({ id: "A" + (100 + n++), date: day.iso, time: t, dentist: den, name: NAMES[Math.floor(r() * NAMES.length)],
+          service: SERVICES[Math.floor(r() * SERVICES.length)], source: "Front desk", status: "booked", phone: null });
+      }
+    }
+  }
+  return out;
+}
+function newPatient() {
+  const r = Math.floor(Math.random() * 90000) + 10000;
+  // `phone` is the internal chat id; `contact` and `whatsapp` are the numbers the patient gives the AI.
+  return { phone: "+91 98" + String(r).slice(0, 3) + " " + String(r).slice(3) + "XXX", name: null, contact: null, whatsapp: null, leadId: null };
+}
+// Normalise an Indian mobile number (accepts +91 / 0 prefixes, spaces, dashes, Bengali and Hindi digits).
+function normPhone(v) {
+  if (v == null) return null;
+  const d = String(v).replace(/[০-৯]/g, c => c.charCodeAt(0) - 0x09E6).replace(/[०-९]/g, c => c.charCodeAt(0) - 0x0966).replace(/\D/g, "");
+  const n = d.length === 12 && d.startsWith("91") ? d.slice(2) : d.length === 11 && d.startsWith("0") ? d.slice(1) : d;
+  return /^[6-9]\d{9}$/.test(n) ? "+91 " + n.slice(0, 5) + " " + n.slice(5) : null;
+}
+function findPhone(text) {
+  const m = String(text).replace(/[০-৯]/g, c => c.charCodeAt(0) - 0x09E6).replace(/[०-९]/g, c => c.charCodeAt(0) - 0x0966).match(/(\+?\d[\d\s-]{8,15}\d)/);
+  return m ? normPhone(m[1]) : null;
+}
+const SAME_RE = /\b(same|ek(i)?|eki|ekoi|wahi|vahi|yahi|yes|haan|ha|hya|hyan|ji)\b|একই|হ্যাঁ|ওই|वही|यही|हाँ|हां/i;
+const DIFF_RE = /\b(different|another|other|alada|alag|onno|dusra|doosra)\b|আলাদা|অন্য|अलग|दूसरा/i;
+const numbersLine = p => [p.contact ? "📞 " + p.contact : null, p.whatsapp ? "WhatsApp " + p.whatsapp : null].filter(Boolean).join(" · ") || "Numbers not given yet";
+function freshState() {
+  return { appts: seedAppts(), chat: [], turns: [], leads: [], alerts: [], patient: newPatient(),
+    stats: { msgs: 0, after: 0, booked: 0, esc: 0, rt: [] }, script: { step: null, offered: [], pending: null, service: null },
+    nextId: 500 };
+}
+S = freshState();
+let clinicName = store.get("sd.clinic") || DEFAULT_CLINIC;
+let KB = store.get("sd.kb") || DEFAULT_KB;
+
+function lead() {
+  let l = S.leads.find(x => x.id === S.patient.leadId);
+  if (!l) {
+    l = { id: "L" + (S.leads.length + 1), phone: S.patient.phone, contact: null, whatsapp: null, name: null, service: null, lang: "—", status: "New", first: nowClock(), last: "" };
+    S.leads.unshift(l); S.patient.leadId = l.id;
+  }
+  return l;
+}
+
+// ---------- chat rendering ----------
+function addMsg(who, text) { S.chat.push({ kind: who, text, at: nowClock() }); renderChat(); }
+function addEvent(text, cls) { S.chat.push({ kind: "event", text, cls: cls || "" }); renderChat(); }
+function renderChat(typing) {
+  const box = $("#msgs");
+  box.innerHTML = S.chat.map(m => m.kind === "event"
+    ? `<div class="event ${m.cls}">${esc(m.text)}</div>`
+    : `<div class="msg ${m.kind}">${fmt(m.text)}<span class="meta">${m.at}${m.kind === "patient" ? " ✓✓" : ""}</span></div>`).join("")
+    + (typing ? `<div class="typing" aria-label="Assistant is typing"><i></i><i></i><i></i></div>` : "");
+  box.scrollTop = box.scrollHeight;
+}
+function greet() {
+  const open = isOpenNow();
+  addMsg("ai", `Namaskar! 🙏 Welcome to *${clinicName}*.\nI'm the clinic's AI assistant. I can book or change appointments and answer questions about timings, location and services${open ? "" : ", even though the clinic is closed right now"}.\nYou can write in English, বাংলা or हिन्दी. Type *human* anytime to reach our front desk.`);
+}
+
+// ---------- safety ----------
+function redFlag(text) { const hits = RED_FLAGS.filter(([re]) => re.test(text)).map(([, l]) => l); return hits.length ? hits.join(", ") : null; }
+function addAlert(level, reason, text) {
+  const l = lead();
+  S.alerts.unshift({ id: "AL" + (S.alerts.length + 1), level, reason, text: text || "", phone: S.patient.phone, contact: S.patient.contact, whatsapp: S.patient.whatsapp, name: S.patient.name || l.name, at: nowClock(), done: false });
+  if (level === "urgent") S.stats.esc++;
+  if (l.status !== "Booked") l.status = "Escalated";
+}
+
+// ---------- AI prompt ----------
+function slotSheet() {
+  return days().map(d => {
+    if (d.closed) return `${d.iso} (${dayLabel(d.iso)}): CLOSED`;
+    const parts = Object.keys(DENTISTS).map(den => `${den}: ${freeList(d.iso, den).join(" ") || "none"}`);
+    return `${d.iso} (${dayLabel(d.iso)}${d.offset === 0 ? ", today" : d.offset === 1 ? ", tomorrow" : ""}) → ${parts.join(" | ")}`;
+  }).join("\n");
+}
+function myAppts() { return S.appts.filter(a => a.phone === S.patient.phone && a.status === "booked"); }
+function buildPrompt() {
+  const now = new Date();
+  const mine = myAppts().map(a => `${a.id}: ${a.date} ${a.time} with ${a.dentist}, ${a.service}`).join("; ") || "none";
+  const convo = S.turns.slice(-16).map(t => `${t.role}: ${t.text}`).join("\n");
+  return `You are the AI WhatsApp receptionist for ${clinicName}, a dental clinic in Kolkata, India. You handle administration and communication only.
+
+NOW: ${now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}, ${nowClock()} (clinic time). Clinic is currently ${isOpenNow() ? "OPEN" : "CLOSED"}.
+
+APPROVED CLINIC INFORMATION (the only facts you may state):
+${KB}
+
+DENTIST IDS: D1 = ${DENTISTS.D1.name} (${DENTISTS.D1.focus}). D2 = ${DENTISTS.D2.name} (${DENTISTS.D2.focus}).
+
+FREE SLOTS, 24h time (ONLY these may be offered or booked; never invent others${TEST_SLOT_TIME ? `. The ${TEST_SLOT_TIME} slot today is a special test slot and may be booked even if it is outside normal hours` : ""}):
+${slotSheet()}
+
+THIS PATIENT: Name: ${S.patient.name || "NOT GIVEN"}. Phone number: ${S.patient.contact || "NOT GIVEN"}. WhatsApp number: ${S.patient.whatsapp || "NOT GIVEN"}. Existing appointments: ${mine}.
+
+RULES
+1. Reply in the patient's language and script (English, Bengali, Hindi, or romanised Banglish/Hinglish to match them). Warm, brief, WhatsApp style, at most ~70 words. Use *bold* for key details. Show times as 12-hour (e.g. 4:00 PM) and always with the full day and date.
+2. Booking: offer 2–4 suitable free slots (pick the right dentist for the service). Book ONLY when you have ALL of: (a) the patient's full name, (b) their phone number, (c) their WhatsApp number, (d) the service/reason, (e) a specific slot the patient chose from the free list. After they pick a slot, ask for whatever is still NOT GIVEN, at most two items per message (e.g. name and phone number together, then "Is your WhatsApp number the same, or a different one?"). Then set action "book" and the reply must be the confirmation: name, phone number, WhatsApp number, service, day + date, time, dentist, address, "arrive 10 minutes early", and ask if they want a reminder phone call on their number 2 hours before. When they answer that question, set "reminder_opt_in" to true (yes) or false (no).
+2a. Phone numbers: Indian mobile numbers have 10 digits starting with 6, 7, 8 or 9 (a +91 or 0 prefix is fine). If a number the patient gives does not fit this, politely ask them to check and send it again. If they say the WhatsApp number is the same as the phone number, return that same number in "whatsapp". Never invent or guess a number.
+3. Reschedule/cancel only appointments listed under existing appointments, using their id.
+4. Never diagnose, never suggest medicines or home remedies, never interpret symptoms or X-rays, never recommend a treatment. For pain or symptoms, offer the earliest appointment and say the dentist will examine them.
+5. Prices: quote only the approved prices above; for anything else say the dentist will advise the cost after examination.
+6. Emergencies (facial swelling, fever with dental pain, trouble breathing or swallowing, uncontrolled bleeding, injury/knocked-out tooth, severe unbearable pain): set action "escalate" with urgency "urgent", tell them the clinic team is being alerted and will call shortly, and that if swelling is spreading or they have trouble breathing or swallowing they must go to the nearest hospital emergency now.
+7. If they ask for a person, complain, or you cannot help: set action "handover".
+8. If information is not in the approved information, say you will check with the clinic team (action "handover") rather than guess.
+
+CONVERSATION SO FAR:
+${convo}
+
+Reply with ONLY one JSON object, no other text:
+{"reply": string, "language": "en"|"bn"|"hi"|"mixed", "service": string|null, "patient_name": string|null, "phone": string|null (the patient's phone number, only if they gave it), "whatsapp": string|null (their WhatsApp number, only if they gave it or said it is the same as the phone number), "selected_slot": {"date":"YYYY-MM-DD","time":"HH:MM","dentist":"D1"|"D2"}|null (the free slot the patient has chosen but that is not booked yet, while you collect their details), "action": {"type":"none"} | {"type":"book","date":"YYYY-MM-DD","time":"HH:MM","dentist":"D1"|"D2","service":string} | {"type":"reschedule","appointment_id":string,"date":"YYYY-MM-DD","time":"HH:MM","dentist":"D1"|"D2"} | {"type":"cancel","appointment_id":string} | {"type":"escalate","urgency":"urgent"|"normal","reason":string} | {"type":"handover","reason":string}, "reminder_opt_in": true|false|null}`;
+}
+
+// ---------- scripted fallback ----------
+function nextOpenDay(fromOffset) { return days().find(d => d.offset >= fromOffset && !d.closed && freeList(d.iso).length); }
+function pickOffers(date) {
+  const free = freeList(date); if (!free.length) return [];
+  const am = free.filter(t => t < "15:00"), pm = free.filter(t => t >= "15:00");
+  const picks = [am[0], am[Math.floor(am.length / 2)], pm[0], pm[Math.floor(pm.length / 2)]].filter(Boolean);
+  return [...new Set(picks)].slice(0, 3);
+}
+function denFor(date, time, service) {
+  const pref = /implant|brace|align|root|rct/i.test(service || "") ? ["D2", "D1"] : ["D1", "D2"];
+  return pref.find(d => isFree(date, time, d));
+}
+function matchTime(text, offered) {
+  const t = text.toLowerCase();
+  const idx = t.match(/^\s*([1-3])\s*$/) || t.match(/\b(first|second|third)\b/);
+  if (idx) { const i = { first: 1, second: 2, third: 3 }[idx[1]] || Number(idx[1]); return offered[i - 1]; }
+  const m = t.match(/(\d{1,2})(?::|\.)?(\d{2})?\s*(am|pm)?/);
+  if (!m) return null;
+  let h = Number(m[1]); const mi = m[2] || "00";
+  if (m[3] === "pm" && h < 12) h += 12; else if (!m[3] && h < 9) h += 12;
+  return offered.find(o => o.date && o.time === pad(h) + ":" + mi) || offered.find(o => o.time.startsWith(pad(h)));
+}
+function scripted(text) {
+  const st = S.script, t = text.toLowerCase(), res = { reply: "", language: "en", service: null, patient_name: null, action: { type: "none" } };
+  if (redFlag(text)) {
+    res.action = { type: "escalate", urgency: "urgent", reason: "Possible dental emergency" };
+    res.reply = "I'm sorry you're going through this. I'm alerting our clinic team right now and someone will call you shortly.\n*If the swelling is spreading or you have trouble breathing or swallowing, please go to the nearest hospital emergency immediately.*";
+    return res;
+  }
+  if (/human|person|receptionist|staff|call me|talk to/.test(t)) { res.action = { type: "handover", reason: "Patient asked for a person" }; res.reply = "Of course. I've passed your chat to our front desk. They'll message or call you shortly."; return res; }
+  if (/cancel/.test(t)) {
+    const a = myAppts()[0];
+    if (a) { res.action = { type: "cancel", appointment_id: a.id }; res.reply = `Done. Your appointment on *${longDay(a.date)}, ${t12(a.time)}* is cancelled. Would you like to book another time?`; }
+    else res.reply = "I couldn't find an upcoming appointment for this number. Would you like to book one?";
+    return res;
+  }
+  if (/price|cost|fee|charge|khoroch|koto|kitna|দাম|খরচ/.test(t)) { res.reply = "Our approved prices: *Consultation ₹300*, *Scaling & cleaning from ₹800*, *Whitening from ₹6,000*. For implants, RCT, braces and crowns, the dentist will advise the cost after examining you. Shall I book a consultation?"; res.service = /implant/.test(t) ? "Implant consult" : null; return res; }
+  if (/where|address|located|location|parking|hour|timing|open|close/.test(t) && st.step !== "pick") { res.reply = "📍 *12 Lake Road, Ballygunge, Kolkata 700019* (near Lake Mall).\n🕙 *Mon–Sat:* 10 AM–2 PM and 5 PM–9 PM. Closed Sunday.\n🚗 Street parking on Lake Road, or paid parking at Lake Mall."; return res; }
+  // Just booked: answer the "reminder call?" question.
+  if (st.step === "reminder") {
+    st.step = null;
+    if (/\b(yes|yeah|ok|okay|sure|please|haan|ha|ji|hya)\b|হ্যাঁ|হ্যা|हाँ|हां|জি|जी/i.test(t)) {
+      res.reminder_opt_in = true;
+      res.reply = `Done ✅ We'll *call you on ${S.patient.contact}* 2 hours before your appointment as a reminder.`;
+      return res;
+    }
+    if (/\b(no|nope|nahi|na)\b|না|नहीं/i.test(t)) { res.reminder_opt_in = false; res.reply = "No problem. See you at the clinic! 😊"; return res; }
+  }
+  // A booking is half done (by the AI or by this script): carry on collecting the missing details.
+  if (st.pending && st.step !== "pick") st.step = !S.patient.name ? "name" : !S.patient.contact ? "contact" : !S.patient.whatsapp ? "whatsapp" : null;
+  if (st.pending && !st.step) return bookScripted(res);
+  if (st.step === "pick") {
+    const choice = matchTime(text, st.offered);
+    if (choice) {
+      st.pending = choice;
+      if (!S.patient.name) { st.step = "name"; res.reply = `Great, *${longDay(choice.date)}, ${t12(choice.time)}*. May I have the patient's full name?`; return res; }
+      return askNumbersOrBook(res);
+    }
+  }
+  if (st.step === "name") {
+    // Accept "Rina Das, 98310 12345" as name + number in one go.
+    const n = findPhone(text), name = text.replace(/[+\d০-৯०-९][\d০-৯०-९\s-]{7,}/g, "").replace(/[,;:|]+/g, " ").replace(/\b(my name is|name|amar naam|mera naam)\b/gi, "").trim();
+    if (!name || name.length < 2) { res.reply = "May I have the patient's full name?"; return res; }
+    S.patient.name = res.patient_name = name.slice(0, 40);
+    if (n && !S.patient.contact) S.patient.contact = res.phone = n;
+    return askNumbersOrBook(res);
+  }
+  if (st.step === "contact") {
+    const n = findPhone(text);
+    if (!n) { res.reply = "That doesn't look like a valid mobile number. Please send a 10-digit number, e.g. *98765 43210*."; return res; }
+    S.patient.contact = res.phone = n; return askNumbersOrBook(res);
+  }
+  if (st.step === "whatsapp") {
+    const n = findPhone(text);
+    if (n) S.patient.whatsapp = res.whatsapp = n;
+    else if (DIFF_RE.test(text)) { res.reply = "No problem. Please send your *WhatsApp number*."; return res; }
+    else if (SAME_RE.test(text)) S.patient.whatsapp = res.whatsapp = S.patient.contact;
+    else { res.reply = "Please send your WhatsApp number, or reply *same* if it's the same as your phone number."; return res; }
+    return askNumbersOrBook(res);
+  }
+  if (/book|appoint|clean|scal|check|slot|available|tomorrow|today|kal|কাল|आज|অ্যাপয়েন্টমেন্ট|pain|dard|ব্যথা|दर्द/.test(t)) {
+    const service = /clean|scal/.test(t) ? "Scaling & cleaning" : /implant/.test(t) ? "Implant consult" : /brace|align/.test(t) ? "Braces consult" : /pain|dard|ব্যথা|दर्द/.test(t) ? "Tooth pain consult" : "Check-up";
+    st.service = service; res.service = service;
+    const day = nextOpenDay(/today|aaj|आज/.test(t) ? 0 : 1) || nextOpenDay(0);
+    if (!day) { res.reply = "We're fully booked this week. I've asked the front desk to call you with the next opening."; res.action = { type: "handover", reason: "No free slots" }; return res; }
+    let times = pickOffers(day.iso);
+    if (/evening|sondhe|শাম|shaam|সন্ধ্যা/.test(t)) times = freeList(day.iso).filter(x => x >= "17:00").slice(0, 3);
+    if (/morning|sokal|সকাল|सुबह/.test(t)) times = freeList(day.iso).filter(x => x < "15:00").slice(0, 3);
+    if (!times.length) times = pickOffers(day.iso);
+    st.offered = times.map(x => ({ date: day.iso, time: x })); st.step = "pick";
+    res.reply = `I can help with that (${service}). Free slots on *${longDay(day.iso)}*:\n${times.map((x, i) => `${i + 1}. ${t12(x)}`).join("\n")}\nWhich time suits you?`;
+    return res;
+  }
+  res.reply = "I can help you book, reschedule or cancel an appointment, and answer questions about our timings, location, services and approved prices. What would you like to do?";
+  return res;
+}
+function askNumbersOrBook(res) {
+  const st = S.script;
+  if (!S.patient.contact) { st.step = "contact"; res.reply = `Thank you${S.patient.name ? ", *" + S.patient.name + "*" : ""}. What is your *phone number*?`; return res; }
+  if (!S.patient.whatsapp) { st.step = "whatsapp"; res.reply = `Got it: *${S.patient.contact}*. Is your *WhatsApp number* the same? Reply *same*, or send your WhatsApp number.`; return res; }
+  return bookScripted(res);
+}
+function bookScripted(res) {
+  const st = S.script, c = st.pending, den = c.dentist && isFree(c.date, c.time, c.dentist) ? c.dentist : denFor(c.date, c.time, st.service);
+  st.step = null;
+  if (!den) { res.reply = "Sorry, that slot was just taken. Could you pick another time?"; st.step = "pick"; return res; }
+  res.action = { type: "book", date: c.date, time: c.time, dentist: den, service: st.service || "Check-up" };
+  res.reply = `✅ *Booked!*\n*${S.patient.name}* – ${st.service || "Check-up"}\n📞 ${S.patient.contact} · WhatsApp ${S.patient.whatsapp}\n📅 ${longDay(c.date)}, *${t12(c.time)}*\n👩‍⚕️ ${DENTISTS[den].name}\n📍 12 Lake Road, Ballygunge\nPlease arrive 10 minutes early. Would you like a *reminder call* on ${S.patient.contact} 2 hours before? (Yes / No)`;
+  return res;
+}
+
+// ---------- apply AI result with validation ----------
+function apply(res, flag) {
+  const l = lead();
+  let reply = String(res && res.reply || "").trim() || "Sorry, I didn't catch that. Could you say it another way?";
+  if (res.patient_name && typeof res.patient_name === "string" && res.patient_name.length < 60) { S.patient.name = S.patient.name || res.patient_name.trim(); }
+  if (S.patient.name) l.name = S.patient.name;
+  // Numbers from the AI are only accepted if they are valid Indian mobiles; "same" WhatsApp is resolved here too.
+  const lastText = (S.turns[S.turns.length - 1] || {}).text || "";
+  const pn = normPhone(res.phone) || (!S.patient.contact ? findPhone(lastText) : null);
+  if (pn) S.patient.contact = pn;
+  const wn = normPhone(res.whatsapp);
+  if (wn) S.patient.whatsapp = wn;
+  else if (res.whatsapp && S.patient.contact && !DIFF_RE.test(lastText) && SAME_RE.test(String(res.whatsapp) + " " + lastText)) S.patient.whatsapp = S.patient.contact;
+  l.contact = S.patient.contact; l.whatsapp = S.patient.whatsapp;
+  // Remember the slot the AI is holding, so the scripted backup can finish the booking if the AI goes down mid-chat.
+  const ss = res.selected_slot;
+  if (ss && ss.date && ss.time && isFree(String(ss.date), String(ss.time).slice(0, 5), String(ss.dentist || "")) ) {
+    S.script.pending = { date: String(ss.date), time: String(ss.time).slice(0, 5), dentist: String(ss.dentist) };
+    S.script.service = res.service || l.service || S.script.service;
+  }
+  if (res.service) l.service = String(res.service).slice(0, 40);
+  if (res.language) { l.lang = { en: "English", bn: "Bengali", hi: "Hindi", mixed: "Mixed" }[res.language] || l.lang; l.langCode = res.language; }
+  const a = res.action || { type: "none" }, events = [];
+  const findMine = id => S.appts.find(x => x.id === String(id) && x.phone === S.patient.phone && x.status === "booked");
+  if (a.type === "book") {
+    const date = String(a.date || ""), time = String(a.time || "").slice(0, 5), den = String(a.dentist || "");
+    if (!S.patient.name) reply = "Before I confirm, may I have the patient's full name?";
+    else if (!S.patient.contact) reply = "Before I confirm, may I have your *phone number*? (10-digit mobile number)";
+    else if (!S.patient.whatsapp) reply = `Before I confirm: is your *WhatsApp number* the same as ${S.patient.contact}? Reply *same*, or send your WhatsApp number.`;
+    else if (isFree(date, time, den)) {
+      const appt = { id: "A" + S.nextId++, date, time, dentist: den, name: S.patient.name, service: String(a.service || l.service || "Check-up").slice(0, 40), source: "AI", status: "booked", phone: S.patient.phone, contact: S.patient.contact, whatsapp: S.patient.whatsapp };
+      S.appts.push(appt); S.stats.booked++; l.status = "Booked"; l.service = appt.service;
+      S.script.pending = null; S.script.step = "reminder";
+      events.push([`Saved to clinic calendar · ${DENTISTS[den].short} · ${dayLabel(date)}, ${t12(time)}`, "booked"]);
+      viewDay = date;
+    } else {
+      const alt = freeList(date).slice(0, 3);
+      reply = `Sorry, that slot is no longer available. ${alt.length ? `Free times on *${dayLabel(date)}*: ${alt.map(t12).join(", ")}. Which one would you like?` : "Could you choose another day?"}`;
+      events.push(["Calendar check blocked a booking for a slot that was not free", ""]);
+    }
+  } else if (a.type === "reschedule") {
+    const ap = findMine(a.appointment_id), date = String(a.date || ""), time = String(a.time || "").slice(0, 5), den = String(a.dentist || "");
+    if (ap && isFree(date, time, den)) {
+      ap.date = date; ap.time = time; ap.dentist = den; ap.source = "AI";
+      events.push([`Moved in calendar → ${DENTISTS[den].short} · ${dayLabel(date)}, ${t12(time)}`, "booked"]); viewDay = date;
+    } else { reply = "Sorry, I couldn't move that appointment to that time. Could you choose another free slot?"; }
+  } else if (a.type === "cancel") {
+    const ap = findMine(a.appointment_id);
+    if (ap) { ap.status = "cancelled"; l.status = "Cancelled"; events.push([`Cancelled in calendar · ${dayLabel(ap.date)}, ${t12(ap.time)}. Slot reopened`, ""]); }
+  } else if (a.type === "escalate") {
+    addAlert(a.urgency === "urgent" ? "urgent" : "normal", a.reason || "Needs staff attention", S.turns[S.turns.length - 1].text);
+    events.push([a.urgency === "urgent" ? "🚨 Urgent alert sent to clinic staff" : "Staff notified", a.urgency === "urgent" ? "urgent" : ""]);
+  } else if (a.type === "handover") {
+    addAlert("normal", a.reason || "Patient asked for a person", S.turns[S.turns.length - 1].text);
+    events.push(["Chat handed over to front desk", ""]);
+  }
+  if (flag && a.type !== "escalate") {
+    addAlert("urgent", "Safety check flagged: " + flag, S.turns[S.turns.length - 1].text);
+    events.push(["🚨 Safety check flagged this message. Urgent alert sent to staff", "urgent"]);
+    if (!/emergency|hospital|হাসপাতাল|अस्पताल/i.test(reply)) reply += "\n\n*If you have spreading swelling, trouble breathing or swallowing, or bleeding that won't stop, please go to the nearest hospital emergency now.* Our team has been alerted.";
+  }
+  if (res.reminder_opt_in === true || res.reminder_opt_in === false) { if (S.script.step === "reminder") S.script.step = null; }
+  if (res.reminder_opt_in === true) {
+    const ap = myAppts().slice(-1)[0];
+    if (ap && localServer && ap.contact) scheduleCall(ap, l);
+    else events.push(["Reminder scheduled 2 hours before the visit (patient opted in)", "booked"]);
+  }
+  addMsg("ai", reply);
+  events.forEach(([t, c]) => addEvent(t, c));
+  S.turns.push({ role: "Assistant", text: reply });
+  l.last = nowClock();
+}
+
+// ---------- reminder calls (local server + Twilio) ----------
+async function scheduleCall(ap, l) {
+  try {
+    const r = await fetch("/api/reminders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      apptId: ap.id, name: ap.name, contact: ap.contact, date: ap.date, time: ap.time, dentist: DENTISTS[ap.dentist].name,
+      service: ap.service, language: (l && l.langCode) || "en", clinic: clinicName }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "error");
+    ap.reminderId = d.id;
+    addEvent(`📞 Reminder call scheduled for ${new Date(d.callAt).toLocaleString("en-IN", { weekday: "short", hour: "numeric", minute: "2-digit" })} to ${ap.contact}`, "booked");
+  } catch (e) { addEvent("Couldn't schedule the reminder call: " + e.message, "urgent"); }
+  pollCalls();
+}
+const CALL_LABEL = { scheduled: ["Call scheduled", ""], calling: ["Ringing…", "warn"], "in-call": ["On the call", "warn"], confirmed: ["Confirmed ✓", "ok"],
+  cancelled: ["Cancelled on call", "urgent"], reschedule: ["Wants new time", "warn"], "no-answer": ["No answer", "urgent"], retry: ["Retrying in 10 min", "warn"],
+  "no-response": ["No reply", "warn"], failed: ["Call failed", "urgent"], missed: ["Missed", ""], off: ["Turned off", ""] };
+async function pollCalls() {
+  if (!localServer) return;
+  try { calls = await (await fetch("/api/reminders")).json(); } catch (e) { return; }
+  // Apply what patients said on the phone to the calendar and staff alerts (once per outcome).
+  for (const r of calls.items) {
+    const key = r.id + ":" + r.status; if (seenCallOutcome.has(key)) continue;
+    const ap = S.appts.find(a => a.id === r.apptId && a.date === r.date && a.time === r.time && a.contact === r.contact);
+    if (!ap) continue;
+    ap.callStatus = r.status;
+    if (r.status === "cancelled" && ap.status === "booked") { ap.status = "cancelled"; addAlertFor(ap, "normal", "Cancelled on the reminder call. Send a WhatsApp to rebook", r.answer); }
+    if (r.status === "reschedule") addAlertFor(ap, "normal", "Wants a new time (said on the reminder call). Contact on WhatsApp", r.answer);
+    if (r.status === "no-answer" || r.status === "failed") addAlertFor(ap, "normal", `Reminder call ${r.status === "failed" ? "failed" : "not answered"}. Please message the patient`, r.error || "");
+    seenCallOutcome.add(key);
+  }
+  renderConsole();
+}
+function addAlertFor(ap, level, reason, text) {
+  S.alerts.unshift({ id: "AL" + (S.alerts.length + 1), level, reason, text: text || "", contact: ap.contact, whatsapp: ap.whatsapp, name: ap.name, at: nowClock(), done: false });
+}
+function renderCalls() {
+  const pane = $("#pane-calls"); if (!pane) return;
+  if (!localServer) { pane.innerHTML = `<div class="empty">Reminder calls work when the app runs on your PC with <b>node server.js</b>.</div>`; return; }
+  if (!calls) { pane.innerHTML = `<div class="empty">Loading…</div>`; return; }
+  const setup = !calls.twilio ? `<p class="note" style="margin-bottom:10px">⚠️ <b>Real calls are off.</b> Add your Twilio keys to <code>.env</code> and restart the server. Calls are still scheduled and listed here.</p>`
+    : !calls.publicUrl ? `<p class="note" style="margin-bottom:10px">⚠️ <b>No public URL.</b> ${esc(calls.note || "Install cloudflared so Twilio can send the patient's answer back.")}</p>`
+    : `<p class="note" style="margin-bottom:10px">✅ Real calls are on. Each patient who asks for a reminder gets a call ${calls.minutesBefore} minutes before their appointment.</p>`;
+  const rows = calls.items.slice().reverse();
+  pane.innerHTML = setup + (rows.length ? `<div class="tablewrap"><table><thead><tr><th>Patient</th><th>Appointment</th><th>Call at</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(r => {
+    const [lab, cls] = CALL_LABEL[r.status] || [r.status, ""], last = (r.log || []).slice(-1)[0];
+    return `<tr><td><strong>${esc(r.name)}</strong><br><small style="color:var(--muted);font-family:var(--mono)">${esc(r.contact)}</small></td>
+      <td>${esc(dayLabel(r.date))}, ${t12(r.time)}<br><small style="color:var(--muted)">${esc(r.dentist)}</small></td>
+      <td style="font-family:var(--mono)">${new Date(r.callAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</td>
+      <td><span class="pill ${cls}"><span class="dot"></span>${esc(lab)}</span>${last ? `<br><small style="color:var(--muted)">${esc(last.text)}</small>` : ""}${r.answer ? `<br><small>“${esc(r.answer)}”</small>` : ""}</td>
+      <td style="white-space:nowrap">${["scheduled", "retry", "failed", "no-answer", "no-response", "missed"].includes(r.status) ? `<button class="btn" type="button" data-callnow="${r.id}">Call now</button>` : ""}
+        ${["scheduled", "retry"].includes(r.status) ? `<button class="btn" type="button" data-calloff="${r.id}">Turn off</button>` : ""}</td></tr>`;
+  }).join("")}</tbody></table></div>`
+    : `<div class="empty">No reminder calls yet. Book an appointment in the chat and say <b>yes</b> when the assistant offers a reminder.</div>`);
+}
+
+// ---------- send ----------
+async function send(text) {
+  text = String(text || "").trim();
+  if (!text || busy) return;
+  if (!S.chat.length) greet();
+  busy = true; $("#sendBtn").disabled = true;
+  lead();
+  addMsg("patient", text); S.turns.push({ role: "Patient", text });
+  S.stats.msgs++; if (!isOpenNow()) S.stats.after++;
+  renderChat(true); renderConsole();
+  const flag = redFlag(text), t0 = performance.now();
+  let res;
+  if (sampleFn && mode === "ai") {
+    try {
+      res = await sampleFn.json(buildPrompt(), { modelTier: "quick", cache: false });
+      if (!res || typeof res !== "object") throw { code: "invalid_json" };
+    } catch (e) {
+      const code = e && e.code;
+      if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(code)) setMode("scripted", "AI not allowed in this view. Using scripted demo");
+      else if (code === "rate_limited") setMode("ai", "AI busy. This reply is scripted");
+      res = scripted(text);
+    }
+  } else {
+    res = scripted(text);
+  }
+  S.stats.rt.push(performance.now() - t0);
+  apply(res, flag);
+  busy = false; $("#sendBtn").disabled = false;
+  renderChat(); renderConsole();
+}
+
+// ---------- console ----------
+function renderKpis() {
+  const rt = S.stats.rt.length ? (S.stats.rt.reduce((a, b) => a + b, 0) / S.stats.rt.length / 1000) : 0;
+  const open = S.alerts.filter(a => !a.done).length;
+  $("#kpis").innerHTML = [
+    [S.stats.msgs, "Patient messages"],
+    [S.stats.after, "After-hours handled"],
+    [S.stats.booked, "Booked by AI"],
+    [open, "Open staff alerts", open ? "alert" : ""],
+    [S.stats.rt.length ? rt.toFixed(1) + "s" : "—", "Avg reply time"]
+  ].map(([v, l, c]) => `<div class="kpi ${c || ""}"><b>${v}</b><span>${l}</span></div>`).join("");
+  const ac = $("#alertCount"); ac.hidden = !open; ac.textContent = open;
+}
+function renderSchedule() {
+  const ds = days(); if (!viewDay || !ds.find(d => d.iso === viewDay)) viewDay = (ds.find(d => !d.closed) || ds[0]).iso;
+  const day = ds.find(d => d.iso === viewDay);
+  const bookedCount = iso => S.appts.filter(a => a.date === iso && a.status === "booked").length;
+  let html = `<div class="days" role="group" aria-label="Choose day">${ds.map(d => `<button type="button" class="day ${d.closed ? "closed" : ""}" data-day="${d.iso}" aria-pressed="${d.iso === viewDay}">${d.offset === 0 ? "Today" : d.offset === 1 ? "Tomorrow" : parseIso(d.iso).toLocaleDateString("en-IN", { weekday: "short" })}<b>${parseIso(d.iso).getDate()} ${parseIso(d.iso).toLocaleDateString("en-IN", { month: "short" })}</b>${d.closed ? "Closed" : bookedCount(d.iso) + " booked"}</button>`).join("")}</div>`;
+  if (day.closed) html += `<div class="closedmsg">Clinic closed on Sunday. The AI still answers messages and books for other days.</div>`;
+  else {
+    html += `<div class="tablewrap"><table><thead><tr><th>Time</th>${Object.values(DENTISTS).map(d => `<th>${esc(d.name)}</th>`).join("")}</tr></thead><tbody>`;
+    for (const t of timesFor(viewDay)) {
+      html += `<tr><td class="time">${t12(t)}</td>`;
+      for (const den of Object.keys(DENTISTS)) {
+        const a = booked(viewDay, t, den), past = isPast(viewDay, t);
+        html += `<td>${a ? `<div class="slot ${a.source === "AI" ? "ai" : "taken"} ${past ? "past" : ""}">${esc(a.name)}${a.source === "AI" ? '<span class="tag">AI</span>' : ""}${a.callStatus === "confirmed" ? '<span class="tag" title="Confirmed on reminder call">📞✓</span>' : ""}<br><small>${esc(a.service)}</small></div>` : `<div class="slot free ${past ? "past" : ""}">${past ? "—" : "Free"}</div>`}</td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+  $("#pane-schedule").innerHTML = html;
+}
+function renderAlerts() {
+  $("#pane-alerts").innerHTML = S.alerts.length ? `<div class="alerts">${S.alerts.map(a => `
+    <div class="alert ${a.level === "urgent" ? "urgent" : ""} ${a.done ? "done" : ""}">
+      <span class="pill ${a.level === "urgent" ? "urgent" : "warn"}"><span class="dot"></span>${a.level === "urgent" ? "Urgent" : "Follow up"}</span>
+      <div class="body"><strong>${esc(a.name || "Unknown patient")} · ${esc(numbersLine(a))}</strong>
+        <p>${esc(a.reason)}${a.text ? ` · “${esc(a.text.slice(0, 120))}”` : ""}</p>
+        <p style="font-family:var(--mono);font-size:11.5px">${a.at}${a.done ? " · handled" : ""}</p></div>
+      ${a.done ? "" : `<button class="btn" type="button" data-done="${a.id}">Mark handled</button>`}
+    </div>`).join("")}</div>` : `<div class="empty">No alerts. Emergencies and requests for a person appear here instantly.</div>`;
+}
+function renderLeads() {
+  $("#pane-leads").innerHTML = S.leads.length ? `<div class="tablewrap"><table><thead><tr><th>Patient</th><th>Service</th><th>Language</th><th>Status</th><th>Started</th></tr></thead><tbody>${S.leads.map(l => `
+    <tr><td><strong>${esc(l.name || "Unknown")}</strong><br><small style="color:var(--muted);font-family:var(--mono)">${esc(numbersLine(l))}</small></td>
+    <td>${esc(l.service || "—")}</td><td>${esc(l.lang)}</td><td><span class="status ${l.status}">${l.status}</span></td><td style="font-family:var(--mono)">${l.first}</td></tr>`).join("")}</tbody></table></div>`
+    : `<div class="empty">Every patient conversation is logged here as an enquiry, with the service they want and whether it became a booking.</div>`;
+}
+function renderConsole() { renderKpis(); renderSchedule(); renderAlerts(); renderLeads(); renderCalls(); }
+
+function setMode(m, label) {
+  mode = m;
+  const p = $("#modePill");
+  p.className = "pill " + (m === "ai" ? "ok" : "warn");
+  p.innerHTML = `<span class="dot"></span>${esc(label || (m === "ai" ? "Live AI (Claude)" : "Scripted demo mode"))}`;
+}
+function setOpenPill() {
+  const o = isOpenNow(), p = $("#openPill");
+  p.className = "pill " + (o ? "ok" : "warn");
+  p.innerHTML = `<span class="dot"></span>${o ? "Clinic open now" : "Clinic closed now. AI is covering"}`;
+  $("#phoneSub").textContent = o ? "AI assistant · replies instantly" : "Clinic closed · AI assistant replies 24/7";
+}
+
+// ---------- wiring ----------
+$("#chips").innerHTML = CHIPS.map((c, i) => `<button type="button" class="chip" data-chip="${i}">${esc(c)}</button>`).join("");
+$("#chips").addEventListener("click", e => { const b = e.target.closest("[data-chip]"); if (b) send(CHIPS[b.dataset.chip]); });
+$("#composer").addEventListener("submit", e => { e.preventDefault(); const v = $("#msgInput").value; $("#msgInput").value = ""; send(v); });
+document.querySelector(".tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if (!b) return;
+  activeTab = b.dataset.tab;
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.tab === activeTab));
+  ["schedule", "alerts", "leads", "calls", "settings"].forEach(k => { $("#pane-" + k).hidden = k !== activeTab; });
+});
+$("#pane-schedule").addEventListener("click", e => { const b = e.target.closest("[data-day]"); if (b) { viewDay = b.dataset.day; renderSchedule(); } });
+$("#pane-alerts").addEventListener("click", e => { const b = e.target.closest("[data-done]"); if (b) { const a = S.alerts.find(x => x.id === b.dataset.done); if (a) a.done = true; renderConsole(); } });
+$("#pane-calls").addEventListener("click", async e => {
+  const b = e.target.closest("[data-callnow],[data-calloff]"); if (!b) return;
+  const id = b.dataset.callnow || b.dataset.calloff, act = b.dataset.callnow ? "call" : "cancel";
+  b.disabled = true; b.textContent = act === "call" ? "Calling…" : "…";
+  try { await fetch(`/api/reminders/${encodeURIComponent(id)}/${act}`, { method: "POST" }); } catch (err) {}
+  pollCalls();
+});
+$("#newChat").addEventListener("click", () => {
+  if (busy) return;
+  S.chat = []; S.turns = []; S.patient = newPatient(); S.script = { step: null, offered: [], pending: null, service: null };
+  greet(); renderConsole();
+});
+$("#resetAll").addEventListener("click", () => { if (busy) return; S = freshState(); viewDay = null; greet(); renderConsole(); });
+function loadSettings() { $("#clinicName").value = clinicName; $("#kbText").value = KB; $("#clinicTitle").textContent = clinicName; }
+$("#saveKb").addEventListener("click", () => {
+  clinicName = $("#clinicName").value.trim() || DEFAULT_CLINIC; KB = $("#kbText").value.trim() || DEFAULT_KB;
+  store.set("sd.clinic", clinicName); store.set("sd.kb", KB); loadSettings();
+  $("#kbSaved").textContent = "Saved. The AI uses this from the next message.";
+});
+$("#restoreKb").addEventListener("click", () => { $("#clinicName").value = DEFAULT_CLINIC; $("#kbText").value = DEFAULT_KB; $("#kbSaved").textContent = "Sample text restored. Click Save to use it."; });
+
+loadSettings(); setOpenPill(); greet(); renderConsole();
+setInterval(setOpenPill, 60000);
+
+(async () => {
+  try {
+    sampleFn = window.claude && typeof window.claude.use === "function" ? await window.claude.use("sample") : null;
+  } catch (e) { sampleFn = null; }
+  // Running locally: use the bundled Node server (server.js), which calls the Claude API.
+  if (!sampleFn && location.protocol.startsWith("http")) {
+    try {
+      const st = await (await fetch("/api/status")).json();
+      if (st) { localServer = true; pollCalls(); setInterval(pollCalls, 5000); }
+      if (st && st.ready) window.__aiLabel = "Live AI (" + st.provider.charAt(0).toUpperCase() + st.provider.slice(1) + ")";
+      if (st && st.ready) sampleFn = {
+        json: async (prompt) => {
+          const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }) });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw { code: r.status === 429 ? "rate_limited" : (data.code || "server_error"), message: data.error };
+          return data;
+        }
+      };
+      else if (st) { setMode("scripted", "No API key in .env. Using scripted demo"); return; }
+    } catch (e) { sampleFn = null; }
+  }
+  if (sampleFn) setMode("ai", window.__aiLabel || "Live AI (Claude)");
+  else setMode("scripted", "Scripted demo mode");
+})();
+})();
+</script>

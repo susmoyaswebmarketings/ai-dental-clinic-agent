@@ -1,0 +1,15 @@
+# Secrets: API keys, Twilio token, owner password
+.env
+
+# Patient data and call logs (phone numbers, names, conversations)
+data/
+reminders.json
+calls.log
+*.tmp
+
+# Tools / OS
+node_modules/
+.claude/
+.vscode/
+Thumbs.db
+.DS_Store

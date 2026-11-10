@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinic Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Noto+Sans+Bengali:wght@400;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F2F5F4; --surface:#FFFFFF; --sunk:#E8EEEC; --ink:#14201D; --muted:#5A6A65; --line:#D3DDD9;
+  --accent:#0E7A6B; --accent-ink:#FFFFFF; --accent-soft:#DCEFEA;
+  --urgent:#B32143; --urgent-soft:#FBE3E8; --warn:#9A5A00; --warn-soft:#FAEED7;
+  --side:#0F2A25; --side-ink:#D7E7E2; --side-muted:#8FB0A7; --side-active:#1B4A41;
+  --chatbg:#E5EBE9; --bubble-in:#FFFFFF; --bubble-out:#D3EEE6; --event:#EEF3F1;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Figtree","Noto Sans Bengali","Noto Sans Devanagari","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1412; --surface:#161F1C; --sunk:#1D2824; --ink:#E4EDEA; --muted:#93A49F; --line:#2A3833;
+  --accent:#3CC0A8; --accent-ink:#04211B; --accent-soft:#143A32;
+  --urgent:#F27C95; --urgent-soft:#3B1922; --warn:#E9B264; --warn-soft:#3A2B13;
+  --side:#0A100E; --side-ink:#D7E7E2; --side-muted:#7E9690; --side-active:#16332C;
+  --chatbg:#111916; --bubble-in:#1C2723; --bubble-out:#164036; --event:#1A2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1412; --surface:#161F1C; --sunk:#1D2824; --ink:#E4EDEA; --muted:#93A49F; --line:#2A3833;
+  --accent:#3CC0A8; --accent-ink:#04211B; --accent-soft:#143A32;
+  --urgent:#F27C95; --urgent-soft:#3B1922; --warn:#E9B264; --warn-soft:#3A2B13;
+  --side:#0A100E; --side-ink:#D7E7E2; --side-muted:#7E9690; --side-active:#16332C;
+  --chatbg:#111916; --bubble-in:#1C2723; --bubble-out:#164036; --event:#1A2420; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg)}
+body{color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+
+/* App shell: fixed left menu, scrolling main area. On small screens the menu becomes a top strip. */
+.app{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}
+.side{background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;padding:18px 12px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+.brand .logo{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--display);font-weight:700;flex:none}
+.brand strong{display:block;font-family:var(--display);font-size:16px;line-height:1.2}
+.brand small{color:var(--side-muted);font-size:12px}
+.menu-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--side-muted);padding:6px 10px}
+.menu{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.menu a,.menu span{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;text-decoration:none;font-weight:600;font-size:13.5px}
+.menu a{color:var(--side-ink)}
+.menu a[aria-current="page"]{background:var(--side-active);box-shadow:inset 3px 0 0 var(--accent)}
+.menu a:hover{background:var(--side-active)}
+.menu span{color:var(--side-muted);cursor:default}
+.menu svg{width:18px;height:18px;flex:none}
+.soon{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:5px;border:1px solid var(--side-muted);color:var(--side-muted)}
+.side-foot{margin-top:auto;border-top:1px solid rgba(255,255,255,.08);padding:12px 8px 0;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
+.side-foot .who{color:var(--side-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-btn{display:block;text-align:center;border:1px solid rgba(255,255,255,.18);background:transparent;color:var(--side-ink);border-radius:8px;padding:7px 10px;font-weight:600;cursor:pointer;text-decoration:none}
+.side-btn:hover{border-color:var(--accent)}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;height:auto;padding:12px 16px}
+  .brand{padding:0 0 10px}
+  .menu-label{display:none}
+  .menu{flex-direction:row;overflow-x:auto;gap:6px}
+  .menu li{flex:none}
+  .side-foot{flex-direction:row;align-items:center;border-top:0;padding:10px 0 0}
+  .side-foot .who{flex:1}
+}
+
+.main{padding:22px max(16px,2.4vw) 40px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.top h1{font-family:var(--display);font-size:clamp(22px,2.6vw,28px);line-height:1.1;margin:0;letter-spacing:-.01em}
+.top p{margin:4px 0 0;color:var(--muted)}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--sunk);color:var(--muted)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.urgent{background:var(--urgent-soft);color:var(--urgent)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.6;cursor:default}
+
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font-family:var(--display);font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kpi.alert b{color:var(--urgent)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-width:0}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 8px;overflow-x:auto}
+.tab{border:0;background:none;padding:11px 12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab .count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--urgent);color:var(--surface);font-size:11px;text-align:center}
+.pane{padding:14px}
+.days{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px}
+.day{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 10px;cursor:pointer;text-align:center;font-size:12px}
+.day b{display:block;font-size:14px}
+.day[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.day.closed{opacity:.55}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+td.time{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;width:80px}
+.slot{border-radius:7px;padding:4px 8px;font-size:12.5px}
+.slot.free{color:var(--muted);border:1px dashed var(--line)}
+.slot.taken{background:var(--sunk)}
+.slot.ai{background:var(--accent-soft);color:var(--ink);box-shadow:inset 3px 0 0 var(--accent)}
+.slot.past{opacity:.45}
+.slot small{color:var(--muted)}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:5px;background:var(--accent);color:var(--accent-ink);margin-left:4px;vertical-align:1px}
+.closedmsg{padding:28px;text-align:center;color:var(--muted)}
+.alerts{display:flex;flex-direction:column;gap:10px}
+.alert{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.alert.urgent{border-color:var(--urgent);background:var(--urgent-soft)}
+.alert .body{flex:1;min-width:0}
+.alert .body p{margin:2px 0 0;color:var(--muted)}
+.alert.done{opacity:.55}
+.empty{color:var(--muted);padding:18px;text-align:center}
+.status{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);white-space:nowrap}
+.status.Booked{background:var(--accent-soft);color:var(--accent)}
+.status.Escalated{background:var(--urgent-soft);color:var(--urgent)}
+.status.Cancelled{background:var(--warn-soft);color:var(--warn)}
+tr.lead{cursor:pointer}
+tr.lead:hover td{background:var(--sunk)}
+.settings{display:grid;gap:12px}
+.settings label{font-weight:600;font-size:13px;display:block;margin-bottom:4px}
+.settings input,.settings textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px}
+.settings textarea{min-height:240px;font-size:13px;line-height:1.45;resize:vertical}
+.hint,.note{color:var(--muted);font-size:12.5px;margin:0}
+code{font-family:var(--mono);font-size:12px}
+
+/* Conversation viewer */
+dialog{border:1px solid var(--line);border-radius:16px;padding:0;width:min(520px,calc(100vw - 32px));max-height:min(80vh,720px);background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.dlg-head strong{font-family:var(--display);font-size:16px}
+.convo{background:var(--chatbg);padding:12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:calc(min(80vh,720px) - 60px)}
+.msg{max-width:84%;padding:7px 10px 5px;border-radius:12px;overflow-wrap:anywhere;font-size:13.5px}
+.msg.ai{background:var(--bubble-in);align-self:flex-start}
+.msg.patient{background:var(--bubble-out);align-self:flex-end}
+.msg .meta{display:block;text-align:right;font-size:10.5px;color:var(--muted);font-family:var(--mono)}
+.event{align-self:center;background:var(--event);border:1px dashed var(--line);color:var(--muted);font-size:12px;padding:3px 10px;border-radius:8px;text-align:center}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="side" aria-label="Main menu">
+    <div class="brand"><div class="logo" id="logo" aria-hidden="true">SD</div><div><strong id="clinicTitle">Smile Dental Clinic</strong><small>Clinic owner dashboard</small></div></div>
+    <div class="menu-label">AI agents</div>
+    <ul class="menu">
+      <li><a href="#receptionist" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        AI Dental Receptionist</a></li>
+      <li><span title="Coming soon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        AI Appointment Manager<em class="soon">SOON</em></span></li>
+      <li><span title="Coming soon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Patient Relationship<em class="soon">SOON</em></span></li>
+      <li><span title="Coming soon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-6"/></svg>
+        Marketing Analyst<em class="soon">SOON</em></span></li>
+      <li><span title="Coming soon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Operations Analyst<em class="soon">SOON</em></span></li>
+    </ul>
+    <div class="side-foot">
+      <a class="side-btn" href="/" target="_blank" rel="noopener">Open patient chat ↗</a>
+      <span class="who" id="who"></span>
+      <button class="side-btn" id="logout" type="button">Log out</button>
+    </div>
+  </nav>
+
+  <main class="main" id="receptionist">
+    <header class="top">
+      <div>
+        <h1>AI Dental Receptionist</h1>
+        <p>Bookings, enquiries and alerts from your AI receptionist. Updates every few seconds.</p>
+      </div>
+      <div class="top-actions">
+        <span id="aiPill" class="pill"><span class="dot"></span>…</span>
+        <span id="openPill" class="pill"><span class="dot"></span>…</span>
+        <button class="btn" id="resetAll" type="button" title="Clear all demo data and start again">Reset demo</button>
+      </div>
+    </header>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="panel">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="schedule" aria-selected="true">Appointments</button>
+        <button class="tab" role="tab" data-tab="alerts" aria-selected="false">Staff alerts<span class="count" id="alertCount" hidden></span></button>
+        <button class="tab" role="tab" data-tab="leads" aria-selected="false">Enquiries</button>
+        <button class="tab" role="tab" data-tab="calls" aria-selected="false">Reminder calls</button>
+        <button class="tab" role="tab" data-tab="settings" aria-selected="false">Clinic setup</button>
+      </div>
+      <div class="pane" id="pane-schedule"></div>
+      <div class="pane" id="pane-alerts" hidden></div>
+      <div class="pane" id="pane-leads" hidden></div>
+      <div class="pane" id="pane-calls" hidden></div>
+      <div class="pane" id="pane-settings" hidden>
+        <div class="settings">
+          <div><label for="clinicName">Clinic name</label><input id="clinicName" maxlength="80"></div>
+          <div>
+            <label for="kbText">Approved clinic information</label>
+            <p class="hint">The AI may only state facts written here.</p>
+            <textarea id="kbText"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn primary" id="saveKb" type="button">Save clinic information</button>
+            <button class="btn" id="restoreKb" type="button">Restore sample text</button>
+            <span id="kbSaved" class="note" aria-live="polite"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<dialog id="convoDlg" aria-labelledby="convoTitle">
+  <div class="dlg-head"><strong id="convoTitle">Conversation</strong><button class="btn" type="button" id="convoClose">Close</button></div>
+  <div class="convo" id="convo"></div>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2, "0");
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = s => esc(s).replace(/\*([^*\n]+)\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>");
+const parseIso = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const dayLabel = s => parseIso(s).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+const t12 = t => { let [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + pad(m) + " " + ap; };
+const isPast = (date, time) => { const [h, mi] = time.split(":").map(Number); const d = parseIso(date); d.setHours(h, mi, 0, 0); return d.getTime() < Date.now(); };
+const numbersLine = p => [p.contact ? "📞 " + p.contact : null, p.whatsapp ? "WhatsApp " + p.whatsapp : null].filter(Boolean).join(" · ") || "Numbers not given yet";
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+let S = null, calls = null, viewDay = null, activeTab = store.get("sd.tab") || "schedule", settingsLoaded = false;
+
+async function api(path, body) {
+  const opt = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  const r = await fetch(path, opt);
+  if (r.status === 401) { location.href = "/login"; throw new Error("logged out"); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "Request failed");
+  return d;
+}
+
+async function refresh() {
+  try {
+    const [st, cl] = await Promise.all([api("/api/admin/state"), api("/api/reminders").catch(() => null)]);
+    S = st; calls = cl; render();
+  } catch (e) { /* keep showing the last data */ }
+}
+
+function render() {
+  $("#clinicTitle").textContent = S.clinicName;
+  $("#logo").textContent = S.clinicName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  $("#who").textContent = S.user;
+  const ai = $("#aiPill"); ai.className = "pill " + (S.aiReady ? "ok" : "warn");
+  ai.innerHTML = `<span class="dot"></span>${S.aiReady ? "Live AI (" + esc(S.provider.charAt(0).toUpperCase() + S.provider.slice(1)) + ")" : "Scripted mode (no AI key)"}`;
+  const op = $("#openPill"); op.className = "pill " + (S.isOpen ? "ok" : "warn");
+  op.innerHTML = `<span class="dot"></span>${S.isOpen ? "Clinic open now" : "Clinic closed. AI is covering"}`;
+  if (!settingsLoaded) { $("#clinicName").value = S.clinicName; $("#kbText").value = S.kb; settingsLoaded = true; }
+  renderKpis(); renderSchedule(); renderAlerts(); renderLeads(); renderCalls();
+  showTab(activeTab);
+}
+
+function renderKpis() {
+  const open = S.alerts.filter(a => !a.done).length, st = S.stats;
+  $("#kpis").innerHTML = [
+    [st.msgs, "Patient messages"], [st.after, "After-hours handled"], [st.booked, "Booked by AI"],
+    [open, "Open staff alerts", open ? "alert" : ""], [st.avgReply == null ? "—" : st.avgReply.toFixed(1) + "s", "Avg reply time"]
+  ].map(([v, l, c]) => `<div class="kpi ${c || ""}"><b>${v}</b><span>${l}</span></div>`).join("");
+  const ac = $("#alertCount"); ac.hidden = !open; ac.textContent = open;
+}
+
+function renderSchedule() {
+  const ds = S.days; if (!viewDay || !ds.find(d => d.iso === viewDay)) viewDay = (ds.find(d => !d.closed) || ds[0]).iso;
+  const day = ds.find(d => d.iso === viewDay), dens = Object.keys(S.dentists);
+  const bookedCount = iso => S.appts.filter(a => a.date === iso && a.status === "booked").length;
+  const at = (date, time, den) => S.appts.find(a => a.status === "booked" && a.date === date && a.time === time && a.dentist === den);
+  let html = `<div class="days" role="group" aria-label="Choose day">${ds.map(d => `<button type="button" class="day ${d.closed ? "closed" : ""}" data-day="${d.iso}" aria-pressed="${d.iso === viewDay}">${d.offset === 0 ? "Today" : d.offset === 1 ? "Tomorrow" : parseIso(d.iso).toLocaleDateString("en-IN", { weekday: "short" })}<b>${parseIso(d.iso).getDate()} ${parseIso(d.iso).toLocaleDateString("en-IN", { month: "short" })}</b>${d.closed ? "Closed" : bookedCount(d.iso) + " booked"}</button>`).join("")}</div>`;
+  if (day.closed) html += `<div class="closedmsg">Clinic closed on Sunday. The AI still answers messages and books for other days.</div>`;
+  else {
+    html += `<div class="tablewrap"><table><thead><tr><th>Time</th>${dens.map(d => `<th>${esc(S.dentists[d].name)}</th>`).join("")}</tr></thead><tbody>`;
+    for (const t of day.times) {
+      html += `<tr><td class="time">${t12(t)}</td>`;
+      for (const den of dens) {
+        const a = at(viewDay, t, den), past = isPast(viewDay, t);
+        html += `<td>${a ? `<div class="slot ${a.source === "AI" ? "ai" : "taken"} ${past ? "past" : ""}" title="${esc(a.contact ? numbersLine(a) : a.source)}">${esc(a.name)}${a.source === "AI" ? '<span class="tag">AI</span>' : ""}${a.callStatus === "confirmed" ? '<span class="tag" title="Confirmed on reminder call">📞✓</span>' : ""}<br><small>${esc(a.service)}</small></div>` : `<div class="slot free ${past ? "past" : ""}">${past ? "—" : "Free"}</div>`}</td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+  $("#pane-schedule").innerHTML = html;
+}
+
+function renderAlerts() {
+  $("#pane-alerts").innerHTML = S.alerts.length ? `<div class="alerts">${S.alerts.map(a => `
+    <div class="alert ${a.level === "urgent" ? "urgent" : ""} ${a.done ? "done" : ""}">
+      <span class="pill ${a.level === "urgent" ? "urgent" : "warn"}"><span class="dot"></span>${a.level === "urgent" ? "Urgent" : "Follow up"}</span>
+      <div class="body"><strong>${esc(a.name || "Unknown patient")} · ${esc(numbersLine(a))}</strong>
+        <p>${esc(a.reason)}${a.text ? ` · “${esc(String(a.text).slice(0, 140))}”` : ""}</p>
+        <p style="font-family:var(--mono);font-size:11.5px">${a.date ? esc(dayLabel(a.date)) + ", " : ""}${esc(a.at)}${a.done ? " · handled" : ""}</p></div>
+      ${a.done ? "" : `<button class="btn" type="button" data-done="${esc(a.id)}">Mark handled</button>`}
+    </div>`).join("")}</div>` : `<div class="empty">No alerts. Emergencies and requests for a person appear here instantly.</div>`;
+}
+
+function renderLeads() {
+  $("#pane-leads").innerHTML = S.leads.length ? `<p class="note" style="margin-bottom:8px">Click a row to read the full conversation.</p><div class="tablewrap"><table><thead><tr><th>Patient</th><th>Service</th><th>Language</th><th>Status</th><th>Started</th></tr></thead><tbody>${S.leads.map(l => `
+    <tr class="lead" data-lead="${esc(l.id)}" tabindex="0"><td><strong>${esc(l.name || "Unknown")}</strong><br><small style="color:var(--muted);font-family:var(--mono)">${esc(numbersLine(l))}</small></td>
+    <td>${esc(l.service || "—")}</td><td>${esc(l.lang)}</td><td><span class="status ${esc(l.status)}">${esc(l.status)}</span></td><td style="font-family:var(--mono)">${l.firstDate ? esc(dayLabel(l.firstDate)) + "<br>" : ""}${esc(l.first)}</td></tr>`).join("")}</tbody></table></div>`
+    : `<div class="empty">Every patient conversation is logged here as an enquiry, with the service they want and whether it became a booking.</div>`;
+}
+
+const CALL_LABEL = { scheduled: ["Call scheduled", ""], calling: ["Ringing…", "warn"], "in-call": ["On the call", "warn"], confirmed: ["Confirmed ✓", "ok"],
+  cancelled: ["Cancelled on call", "urgent"], reschedule: ["Wants new time", "warn"], "no-answer": ["No answer", "urgent"], retry: ["Retrying in 10 min", "warn"],
+  "no-response": ["No reply", "warn"], failed: ["Call failed", "urgent"], missed: ["Missed", ""], off: ["Turned off", ""] };
+function renderCalls() {
+  const pane = $("#pane-calls");
+  if (!calls) { pane.innerHTML = `<div class="empty">Reminder-call information isn't available.</div>`; return; }
+  const setup = !calls.twilio ? `<p class="note" style="margin-bottom:10px">⚠️ <b>Real calls are off.</b> Add your Twilio keys to <code>.env</code> and restart the server.</p>`
+    : !calls.publicUrl ? `<p class="note" style="margin-bottom:10px">⚠️ <b>No public URL.</b> ${esc(calls.note || "Install cloudflared so Twilio can send the patient's answer back.")}</p>`
+    : `<p class="note" style="margin-bottom:10px">✅ Real calls are on. Each patient who asks for a reminder gets a call ${calls.minutesBefore} minutes before their appointment.</p>`;
+  const rows = calls.items.slice().reverse();
+  pane.innerHTML = setup + (rows.length ? `<div class="tablewrap"><table><thead><tr><th>Patient</th><th>Appointment</th><th>Call at</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(r => {
+    const [lab, cls] = CALL_LABEL[r.status] || [r.status, ""], last = (r.log || []).slice(-1)[0];
+    return `<tr><td><strong>${esc(r.name)}</strong><br><small style="color:var(--muted);font-family:var(--mono)">${esc(r.contact)}</small></td>
+      <td>${esc(dayLabel(r.date))}, ${t12(r.time)}<br><small style="color:var(--muted)">${esc(r.dentist)}</small></td>
+      <td style="font-family:var(--mono)">${new Date(r.callAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</td>
+      <td><span class="pill ${cls}"><span class="dot"></span>${esc(lab)}</span>${last ? `<br><small style="color:var(--muted)">${esc(last.text)}</small>` : ""}${r.answer ? `<br><small>“${esc(r.answer)}”</small>` : ""}</td>
+      <td style="white-space:nowrap">${["scheduled", "retry", "failed", "no-answer", "no-response", "missed"].includes(r.status) ? `<button class="btn" type="button" data-callnow="${esc(r.id)}">Call now</button>` : ""}
+        ${["scheduled", "retry"].includes(r.status) ? `<button class="btn" type="button" data-calloff="${esc(r.id)}">Turn off</button>` : ""}</td></tr>`;
+  }).join("")}</tbody></table></div>`
+    : `<div class="empty">No reminder calls yet. They appear here when a patient books in the chat and says <b>yes</b> to a reminder call.</div>`);
+}
+
+function showTab(tab) {
+  activeTab = tab; store.set("sd.tab", tab);
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.tab === tab));
+  ["schedule", "alerts", "leads", "calls", "settings"].forEach(k => { $("#pane-" + k).hidden = k !== tab; });
+}
+
+async function openConvo(leadId) {
+  const l = S.leads.find(x => x.id === leadId); if (!l) return;
+  $("#convoTitle").textContent = (l.name || "Unknown patient") + " · " + l.status;
+  $("#convo").innerHTML = `<div class="event">Loading…</div>`;
+  $("#convoDlg").showModal();
+  try {
+    const { messages } = await api("/api/admin/conversation?lead=" + encodeURIComponent(leadId));
+    $("#convo").innerHTML = messages.length ? messages.map(m => m.kind === "event"
+      ? `<div class="event">${esc(m.text)}</div>`
+      : `<div class="msg ${m.kind === "patient" ? "patient" : "ai"}">${fmt(m.text)}<span class="meta">${esc(m.at)}${m.by === "script" ? " · scripted" : ""}</span></div>`).join("")
+      : `<div class="event">This conversation is no longer stored.</div>`;
+    $("#convo").scrollTop = $("#convo").scrollHeight;
+  } catch (e) { $("#convo").innerHTML = `<div class="event">${esc(e.message)}</div>`; }
+}
+
+// ---------- wiring ----------
+document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); });
+$("#pane-schedule").addEventListener("click", e => { const b = e.target.closest("[data-day]"); if (b) { viewDay = b.dataset.day; renderSchedule(); } });
+$("#pane-alerts").addEventListener("click", async e => { const b = e.target.closest("[data-done]"); if (!b) return; b.disabled = true; try { await api(`/api/admin/alerts/${encodeURIComponent(b.dataset.done)}/done`, {}); } catch (x) {} refresh(); });
+$("#pane-leads").addEventListener("click", e => { const r = e.target.closest("[data-lead]"); if (r) openConvo(r.dataset.lead); });
+$("#pane-leads").addEventListener("keydown", e => { const r = e.target.closest("[data-lead]"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openConvo(r.dataset.lead); } });
+$("#pane-calls").addEventListener("click", async e => {
+  const b = e.target.closest("[data-callnow],[data-calloff]"); if (!b) return;
+  const id = b.dataset.callnow || b.dataset.calloff, act = b.dataset.callnow ? "call" : "cancel";
+  b.disabled = true; b.textContent = act === "call" ? "Calling…" : "…";
+  try { await api(`/api/reminders/${encodeURIComponent(id)}/${act}`, {}); } catch (x) {}
+  refresh();
+});
+$("#convoClose").addEventListener("click", () => $("#convoDlg").close());
+$("#saveKb").addEventListener("click", async () => {
+  try { await api("/api/admin/settings", { clinicName: $("#clinicName").value, kb: $("#kbText").value }); $("#kbSaved").textContent = "Saved. The AI uses this from the next message."; settingsLoaded = false; refresh(); }
+  catch (e) { $("#kbSaved").textContent = "Couldn't save: " + e.message; }
+});
+$("#restoreKb").addEventListener("click", () => { $("#clinicName").value = S.defaultClinic; $("#kbText").value = S.defaultKb; $("#kbSaved").textContent = "Sample text restored. Click Save to use it."; });
+$("#resetAll").addEventListener("click", async () => {
+  if (!confirm("Clear all appointments made by the AI, enquiries, alerts and chats, and start the demo again?")) return;
+  await api("/api/admin/reset", {}); settingsLoaded = false; viewDay = null; refresh();
+});
+$("#logout").addEventListener("click", async () => { try { await api("/api/logout", {}); } catch (e) {} location.href = "/login"; });
+
+refresh();
+setInterval(refresh, 5000);
+})();
+</script>
+</body>
+</html>
